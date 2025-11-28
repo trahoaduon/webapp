@@ -104,7 +104,8 @@ btnGen.onclick = async () => {
   /* 3. Logo: ưu tiên file chọn → logo-qr.jpg → không logo */
   if (logoEl.files && logoEl.files[0]) {
     const img = new Image();
-    img.onload = () => { drawLogo(img, tempCanvas); };
+    //img.onload = () => { drawLogo(img, tempCanvas); };
+    img.onload = () => { drawLogo(img, tempCanvas, 600); };
     img.onerror = () => { console.warn('Logo chọn bị lỗi'); showResult(tempCanvas); };
     img.src = URL.createObjectURL(logoEl.files[0]);
   } else {
@@ -115,7 +116,8 @@ btnGen.onclick = async () => {
       })
       .then(blob => {
         const img = new Image();
-        img.onload = () => { drawLogo(img, tempCanvas); };
+        //img.onload = () => { drawLogo(img, tempCanvas); };
+        img.onload = () => { drawLogo(img, tempCanvas, 600); };
         img.onerror = () => { console.warn('logo-qr.jpg không đọc được'); showResult(tempCanvas); };
         img.src = URL.createObjectURL(blob);
       })
@@ -127,10 +129,10 @@ btnGen.onclick = async () => {
 };
 
 /* ---------------------------------------------------- */
-function drawLogo(img, can) {
+function drawLogo(img, can, qrH) {
   const s = Math.floor(can.width * 0.2);
   const x = (can.width - s) / 2;
-  const y = (can.height - s) / 2;
+  const y = (qrH - s) / 2;   // căn giữa theo chiều cao QR (600)
   const ctx = can.getContext('2d');
   ctx.drawImage(img, x, y, s, s);
   showResult(can);
