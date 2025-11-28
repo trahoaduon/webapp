@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>QR Pro – 1 File HTML</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#f5f5f5;margin:0;padding:20px;color:#222}
+    h1{text-align:center}
+    .box{background:#fff;max-width:480px;margin:auto;padding:25px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+    label{display:block;margin-top:15px;font-weight:bold}
+    textarea,input,select{width:100%;padding:8px;margin-top:5px;border:1px solid #ccc;border-radius:4px;font-size:14px}
+    button{cursor:pointer;padding:10px 18px;border:none;border-radius:4px;font-size:14px;margin-top:10px}
+    #btnGen{background:#1976d2;color:#fff}
+    #btnSave{background:#388e3c;color:#fff;display:none}
+    #preview{text-align:center;margin-top:20px}
+  </style>
+</head>
+
+<body>
+  <h1>✨ QR Pro – Tạo mã QR</h1>
+  <div class="box">
+    <label>Nội dung QR:</label>
+    <textarea id="data" rows="3" placeholder="Ví dụ: https://myweb.com"></textarea>
+
+    <label>Ghi chú (1-3 dòng):</label>
+    <textarea id="note" rows="3" placeholder="Ví dụ: QUÉT MÃ QR ĐỂ TRUY CẬP"></textarea>
+
+    <label>Màu QR:</label>
+    <select id="color">
+      <option value="#000000">Đen</option>
+      <option value="#b71c1c">Đỏ</option>
+      <option value="#0d47a1">Xanh dương</option>
+      <option value="#1b5e20">Xanh lá</option>
+      <option value="#4a148c">Tím</option>
+    </select>
+
+    <label>Logo (PNG/JPG):</label>
+    <input type="file" id="logo" accept="image/png, image/jpeg">
+
+    <button id="btnGen">✨ Tạo mã QR</button>
+    <button id="btnSave">💾 Tải ảnh</button>
+
+    <div id="preview"></div>
+  </div>
+
+  <!-- Thông tin tác giả -->
+  <footer style="text-align:center;margin-top:40px;font-size:13px;color:#555">
+    <hr style="border:none;border-top:1px solid #ddd;margin-bottom:15px">
+    🖋️ Made with ❤️ by <strong>Trần Hoài Dương</strong> &nbsp;•&nbsp;
+    <a href="https://github.com/trahoaduon" target="_blank" style="color:#1976d2">GitHub</a> &nbsp;•&nbsp;
+    <a href="mailto:trahoaduon@gmail.com" style="color:#1976d2">Contact</a>
+  </footer>
+
+<script>
+const dataEl      = document.getElementById('data');
+const noteEl      = document.getElementById('note');
+const colorEl     = document.getElementById('color');
+const logoEl      = document.getElementById('logo');
+const btnGen      = document.getElementById('btnGen');
+const btnSave     = document.getElementById('btnSave');
+const preview     = document.getElementById('preview');
+let   finalImgURL = '';
+
+/* ---------------------------------------------------- */
+btnGen.onclick = async () => {
+  const text = dataEl.value.trim();
+  if (!text) return alert('Vui lòng nhập nội dung QR!');
+  const color = colorEl.value;
+  const note  = noteEl.value.trim();
+
+  /* 1. Vẽ QR */
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 600;
+  await QRCode.toCanvas(canvas, text, {
+    width: 600, margin: 2, color: { dark: color, light: '#ffffff' }
+  });
+
+  /* 2. Thêm ghi chú */
+  const tempCanvas = document.createElement('canvas');
+  const tctx = tempCanvas.getContext('2d');
+  let h = 600;
+  if (note) {
+    const lines  = note.split('\n').slice(0, 3);
+    const fontSz = Math.max(24, 600 / 25);
+    const lineH  = fontSz + 8;
+    const textH  = lineH * lines.length + 20;
+    h = 600 + textH;
+    tempCanvas.width = 600; tempCanvas.height = h;
+    tctx.fillStyle = '#fff'; tctx.fillRect(0, 0, 600, h);
+    tctx.drawImage(canvas, 0, 0);
+    tctx.fillStyle = '#000'; tctx.font = `${fontSz}px Arial`;
+    let y = 600 + 10 + fontSz;
+    lines.forEach(l => {
+      const w = tctx.measureText(l).width;
+      tctx.fillText(l, (600 - w) / 2, y); y += lineH;
+    });
+  } else {
+    tempCanvas.width = 600; tempCanvas.height = h;
+    tctx.drawImage(canvas, 0, 0);
+  }
+
+  /* 3. Logo: ưu tiên file chọn → logo-qr.jpg → không logo */
+  if (logoEl.files && logoEl.files[0]) {
+    const img = new Image();
+    img.onload = () => { drawLogo(img, tempCanvas); };
+    img.onerror = () => { console.warn('Logo chọn bị lỗi'); showResult(tempCanvas); };
+    img.src = URL.createObjectURL(logoEl.files[0]);
+  } else {
+    fetch('logo-qr.jpg')
+      .then(r => {
+        if (!r.ok) throw new Error('404 logo-qr.jpg');
+        return r.blob();
+      })
+      .then(blob => {
+        const img = new Image();
+        img.onload = () => { drawLogo(img, tempCanvas); };
+        img.onerror = () => { console.warn('logo-qr.jpg không đọc được'); showResult(tempCanvas); };
+        img.src = URL.createObjectURL(blob);
+      })
+      .catch(err => {
+        console.warn('Không tìm thấy logo-qr.jpg → bỏ logo', err);
+        showResult(tempCanvas);
+      });
+  }
+};
+
+/* ---------------------------------------------------- */
+function drawLogo(img, can) {
+  const s = Math.floor(can.width * 0.2);
+  const x = (can.width - s) / 2;
+  const y = (can.height - s) / 2;
+  const ctx = can.getContext('2d');
+  ctx.drawImage(img, x, y, s, s);
+  showResult(can);
+}
+
+function showResult(can) {
+  finalImgURL = can.toDataURL('image/png');
+  preview.innerHTML = '<img src="' + finalImgURL + '" width="100%">';
+  btnSave.style.display = 'inline-block';
+}
+
+/* ---------------------------------------------------- */
+btnSave.onclick = () => {
+  const a = document.createElement('a');
+  a.href = finalImgURL;
+  a.download = 'qr-pro.png';
+  a.click();
+};
+</script>
+</body>
+</html>
