@@ -72,9 +72,10 @@ btnGen.onclick = async () => {
 
   /* 1. Vẽ QR */
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 600;
+  const QR_SIZE = 650;                       // <-- kích thước bạn muốn
+  canvas.width = canvas.height = QR_SIZE;
   await QRCode.toCanvas(canvas, text, {
-    width: 600, margin: 2, color: { dark: color, light: '#ffffff' }
+    width: QR_SIZE, margin: 2, color: { dark: color, light: '#ffffff' }
   });
 
   /* 2. Thêm ghi chú */
@@ -105,7 +106,7 @@ btnGen.onclick = async () => {
   if (logoEl.files && logoEl.files[0]) {
     const img = new Image();
     //img.onload = () => { drawLogo(img, tempCanvas); };
-    img.onload = () => { drawLogo(img, tempCanvas, 600); };
+    img.onload = () => { drawLogo(img, tempCanvas, QR_SIZE); };
     img.onerror = () => { console.warn('Logo chọn bị lỗi'); showResult(tempCanvas); };
     img.src = URL.createObjectURL(logoEl.files[0]);
   } else {
@@ -117,7 +118,7 @@ btnGen.onclick = async () => {
       .then(blob => {
         const img = new Image();
         //img.onload = () => { drawLogo(img, tempCanvas); };
-        img.onload = () => { drawLogo(img, tempCanvas, 600); };
+        img.onload = () => { drawLogo(img, tempCanvas, QR_SIZE); };
         img.onerror = () => { console.warn('logo-qr.jpg không đọc được'); showResult(tempCanvas); };
         img.src = URL.createObjectURL(blob);
       })
@@ -130,11 +131,10 @@ btnGen.onclick = async () => {
 
 /* ---------------------------------------------------- */
 function drawLogo(img, can, qrH) {
-  const s = Math.floor(can.width * 0.2);
-  const x = (can.width - s) / 2;
-  const y = (qrH - s) / 2;   // căn giữa theo chiều cao QR (600)
-  const ctx = can.getContext('2d');
-  ctx.drawImage(img, x, y, s, s);
+  const s = Math.floor(qrH * 0.20);   // 20% khung QR
+  const x = (can.width  - s) / 2;
+  const y = (qrH        - s) / 2;     // căn giữa theo khung QR
+  can.getContext('2d').drawImage(img, x, y, s, s);
   showResult(can);
 }
 
